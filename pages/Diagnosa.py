@@ -16,7 +16,7 @@ import os
 # =========================================
 
 # Root folder proyek Anda (/mount/src/sistem_deteksi_penyakit_kulit)
-    BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 diseases_list = []
 diseases_symptoms = []
