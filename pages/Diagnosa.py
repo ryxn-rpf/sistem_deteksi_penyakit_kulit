@@ -15,6 +15,9 @@ import os
 # DATA GLOBAL
 # =========================================
 
+# Root folder proyek Anda (/mount/src/sistem_deteksi_penyakit_kulit)
+    BASE_DIR = Path(__file__).resolve().parent.parent
+
 diseases_list = []
 diseases_symptoms = []
 symptom_map = {}
@@ -34,8 +37,7 @@ def preprocess():
     d_desc_map = {}
     d_treatment_map = {}
 
-    # Root folder proyek Anda (/mount/src/sistem_deteksi_penyakit_kulit)
-    BASE_DIR = Path(__file__).resolve().parent.parent
+    
 
     # 1. Cari folder data secara dinamis (mengatasi masalah huruf besar/kecil)
     def get_exact_folder_name(base_path, target_name):
