@@ -206,7 +206,7 @@ if st.button("Diagnosa Penyakit"):
 
             break
 
-    # ======================
+# ======================
     # TIDAK COCOK (fallback)
     # ======================
     if not found:
@@ -215,9 +215,7 @@ if st.button("Diagnosa Penyakit"):
         max_disease = ""
 
         for key, val in symptom_map.items():
-
             count = 0
-
             for j in range(len(user_answers)):
                 if key[j] == user_answers[j] and user_answers[j] == "ya":
                     count += 1
@@ -226,16 +224,24 @@ if st.button("Diagnosa Penyakit"):
                 max_count = count
                 max_disease = val
 
-        st.warning("⚠ Penyakit tidak cocok secara pasti")
-        st.info(f"Kemungkinan mendekati: {max_disease}")
+        # KONDISI BARU: Jika max_disease tetap kosong (artinya user pilih 'tidak' semua)
+        if max_disease == "" or max_count == 0:
+            st.warning("⚠ Anda tidak memilih gejala apa pun atau tidak ada gejala 'Ya' yang cocok dengan penyakit mana pun.")
+            st.info("Silakan pilih setidaknya satu gejala yang sesuai dengan kondisi Anda.")
+        
+        else:
+            # Jalankan ini HANYA JIKA max_disease ada isinya
+            st.warning("⚠ Penyakit tidak cocok secara pasti")
+            st.info(f"Kemungkinan mendekati: {max_disease} (Kecocokan: {max_count} gejala)")
 
-        image_path = BASE_DIR / "img" / f"{max_disease}.jpg"
+            image_path = BASE_DIR / "img" / f"{max_disease}.jpg"
 
-        if image_path.exists():
-            st.image(Image.open(image_path), caption=max_disease, width=300)
+            if image_path.exists():
+                st.image(Image.open(image_path), caption=max_disease, width=300)
 
-        st.subheader("📖 Deskripsi Penyakit")
-        st.write(d_desc_map[max_disease])
+            st.subheader("📖 Deskripsi Penyakit")
+            # Menggunakan .get() lebih aman daripada [] untuk menghindari KeyError
+            st.write(d_desc_map.get(max_disease, "Deskripsi tidak tersedia."))
 
-        st.subheader("💊 Pengobatan")
-        st.write(d_treatment_map[max_disease])
+            st.subheader("💊 Pengobatan")
+            st.write(d_treatment_map.get(max_disease, "Informasi pengobatan tidak tersedia."))
