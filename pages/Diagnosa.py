@@ -1,3 +1,4 @@
+from pathlib import Path
 import collections
 import collections.abc
 
@@ -7,7 +8,6 @@ collections.Iterable = collections.abc.Iterable
 collections.Callable = collections.abc.Callable
 
 import streamlit as st
-from experta import *
 from PIL import Image
 import os
 
@@ -34,21 +34,30 @@ def preprocess():
     d_desc_map = {}
     d_treatment_map = {}
 
-    with open("penyakit.txt", "r", encoding="utf-8") as diseases:
-        diseases_t = diseases.read()
-        diseases_list = diseases_t.split("\n")
+    BASE_DIR = Path(__file__).resolve().parent.parent
+
+    # penyakit list
+    with open(BASE_DIR / "penyakit.txt", "r", encoding="utf-8") as f:
+        diseases_list = f.read().splitlines()
 
     for disease in diseases_list:
 
-        with open(f"Gejala_penyakit/{disease}.txt", "r", encoding="utf-8") as file:
-            s_list = file.read().split("\n")
-            diseases_symptoms.append(s_list)
-            symptom_map[str(s_list)] = disease
+        # GEJALA
+        gejala_path = BASE_DIR / "Gejala_penyakit" / f"{disease}.txt"
+        with open(gejala_path, "r", encoding="utf-8") as file:
+            s_list = file.read().splitlines()
 
-        with open(f"Deskripsi_penyakit/{disease}.txt", "r", encoding="utf-8") as file:
+        diseases_symptoms.append(s_list)
+
+        # pakai tuple (AMAN, tanpa eval)
+        symptom_map[tuple(s_list)] = disease
+
+        # DESKRIPSI
+        with open(BASE_DIR / "Deskripsi_penyakit" / f"{disease}.txt", "r", encoding="utf-8") as file:
             d_desc_map[disease] = file.read()
 
-        with open(f"Obat_penyakit/{disease}.txt", "r", encoding="utf-8") as file:
+        # OBAT
+        with open(BASE_DIR / "Obat_penyakit" / f"{disease}.txt", "r", encoding="utf-8") as file:
             d_treatment_map[disease] = file.read()
 
 # =========================================
@@ -67,43 +76,17 @@ preprocess()
 # =========================================
 
 symptoms = [
-    "kulit_membengkak",
-    "benjolan_di_kulit",
-    "mengeluarkan_nanah",
-    "demam",
-    "mata_merah",
-    "kulit_kepala_berminyak",
-    "rasa_gatal",
-    "luka_dari_bagian_mulut",
-    "memiliki_gelembung_berisi_air",
-    "rasa_nyeri",
-    "kulit_melepuh",
-    "memiliki_bercak_bercak_merah",
-    "iritasi_kulit",
-    "uban_muncul_sebelum_waktunya",
-    "muncul_keringat_berlebihan",
-    "menimbulkan_warna_kekuningan",
-    "kulit_kering",
-    "kulit_bersisik",
-    "bintik_atau_bintik_merah",
-    "ruam_kulit",
-    "luka",
-    "mati_rasa",
-    "luka_tidak_terasa_nyeri",
-    "kulit_tidak_berkeringat",
-    "kesemutan",
-    "benjolan_berwarna_merah_atau_kulit_kemerahan",
-    "infeksi_kulit",
-    "sakit_kepala",
-    "rasa_kelelahan",
-    "mual",
-    "nyeri_otot",
-    "benjolan_putih",
-    "bintil",
-    "lesi_gatal_atau_kemerahan",
-    "tonjolan_kasar_atau_keras",
-    "bintik_atau_bercak_putih_berwarna_terang",
-    "ruam_berbentuk_cincin"
+    "kulit_membengkak","benjolan_di_kulit","mengeluarkan_nanah","demam",
+    "mata_merah","kulit_kepala_berminyak","rasa_gatal","luka_dari_bagian_mulut",
+    "memiliki_gelembung_berisi_air","rasa_nyeri","kulit_melepuh",
+    "memiliki_bercak_bercak_merah","iritasi_kulit","uban_muncul_sebelum_waktunya",
+    "muncul_keringat_berlebihan","menimbulkan_warna_kekuningan","kulit_kering",
+    "kulit_bersisik","bintik_atau_bintik_merah","ruam_kulit","luka","mati_rasa",
+    "luka_tidak_terasa_nyeri","kulit_tidak_berkeringat","kesemutan",
+    "benjolan_berwarna_merah_atau_kulit_kemerahan","infeksi_kulit","sakit_kepala",
+    "rasa_kelelahan","mual","nyeri_otot","benjolan_putih","bintil",
+    "lesi_gatal_atau_kemerahan","tonjolan_kasar_atau_keras",
+    "bintik_atau_bercak_putih_berwarna_terang","ruam_berbentuk_cincin"
 ]
 
 # =========================================
@@ -125,29 +108,31 @@ for i, symptom in enumerate(symptoms, start=1):
     )
 
     user_answers.append(answer)
+
 # =========================================
-# PROSES DIAGNOSA
+# DIAGNOSA
 # =========================================
 
 if st.button("Diagnosa Penyakit"):
 
     found = False
 
+    user_tuple = tuple(user_answers)
+
+    # ======================
+    # COCOK PERSIS
+    # ======================
     for key, disease in symptom_map.items():
 
-        temp_list = eval(key)
-
-        if temp_list == user_answers:
+        if key == user_tuple:
 
             found = True
-
             st.success(f"✅ Kemungkinan penyakit: {disease}")
 
-            image_path = f"./img/{disease}.jpg"
+            image_path = BASE_DIR / "img" / f"{disease}.jpg"
 
-            if os.path.exists(image_path):
-                img = Image.open(image_path)
-                st.image(img, caption=disease, width=300)
+            if image_path.exists():
+                st.image(Image.open(image_path), caption=disease, width=300)
 
             st.subheader("📖 Deskripsi Penyakit")
             st.write(d_desc_map[disease])
@@ -157,6 +142,9 @@ if st.button("Diagnosa Penyakit"):
 
             break
 
+    # ======================
+    # TIDAK COCOK (fallback)
+    # ======================
     if not found:
 
         max_count = 0
@@ -165,10 +153,9 @@ if st.button("Diagnosa Penyakit"):
         for key, val in symptom_map.items():
 
             count = 0
-            temp_list = eval(key)
 
             for j in range(len(user_answers)):
-                if temp_list[j] == user_answers[j] and user_answers[j] == "ya":
+                if key[j] == user_answers[j] and user_answers[j] == "ya":
                     count += 1
 
             if count > max_count:
@@ -176,14 +163,12 @@ if st.button("Diagnosa Penyakit"):
                 max_disease = val
 
         st.warning("⚠ Penyakit tidak cocok secara pasti")
-
         st.info(f"Kemungkinan mendekati: {max_disease}")
 
-        image_path = f"./img/{max_disease}.jpg"
+        image_path = BASE_DIR / "img" / f"{max_disease}.jpg"
 
-        if os.path.exists(image_path):
-            img = Image.open(image_path)
-            st.image(img, caption=max_disease, width=300)
+        if image_path.exists():
+            st.image(Image.open(image_path), caption=max_disease, width=300)
 
         st.subheader("📖 Deskripsi Penyakit")
         st.write(d_desc_map[max_disease])
