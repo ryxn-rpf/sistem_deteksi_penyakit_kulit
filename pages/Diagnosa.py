@@ -36,29 +36,52 @@ def preprocess():
 
     BASE_DIR = Path(__file__).resolve().parent.parent
 
-    # penyakit list
-    with open(BASE_DIR / "penyakit.txt", "r", encoding="utf-8") as f:
-        diseases_list = f.read().splitlines()
+    # 1. Pastikan file utama ada
+    penyakit_file = BASE_DIR / "penyakit.txt"
+    if not penyakit_file.exists():
+        st.error(f"File tidak ditemukan: {penyakit_file}")
+        return
+
+    with open(penyakit_file, "r", encoding="utf-8") as f:
+        diseases_list = [line.strip() for line in f.read().splitlines() if line.strip()]
 
     for disease in diseases_list:
+        # Menghapus spasi liar di nama penyakit
+        disease = disease.strip()
 
-        # GEJALA
+        # 2. Jalur Folder (Pastikan huruf besar/kecil di folder GitHub Anda SAMA PERSIS!)
         gejala_path = BASE_DIR / "Gejala_penyakit" / f"{disease}.txt"
+        desc_path = BASE_DIR / "Deskripsi_penyakit" / f"{disease}.txt"
+        treatment_path = BASE_DIR / "Obat_penyakit" / f"{disease}.txt"
+
+        # Cek apakah file-file tersebut benar-benar ada sebelum dibuka
+        if not gejala_path.exists():
+            st.error(f"File gejala tidak ditemukan untuk penyakit: {disease} di jalur {gejala_path}")
+            continue
+
+        # BACA GEJALA
         with open(gejala_path, "r", encoding="utf-8") as file:
-            s_list = file.read().splitlines()
-
+            s_list = [line.strip() for line in file.read().splitlines()]
+        
         diseases_symptoms.append(s_list)
-
-        # pakai tuple (AMAN, tanpa eval)
+        
+        # CATATAN: Pastikan isi file txt gejala Anda adalah susunan "ya"/"tidak" 
+        # sebanyak 37 baris yang urutannya sama dengan list 'symptoms' di Streamlit.
         symptom_map[tuple(s_list)] = disease
 
-        # DESKRIPSI
-        with open(BASE_DIR / "Deskripsi_penyakit" / f"{disease}.txt", "r", encoding="utf-8") as file:
-            d_desc_map[disease] = file.read()
+        # BACA DESKRIPSI
+        if desc_path.exists():
+            with open(desc_path, "r", encoding="utf-8") as file:
+                d_desc_map[disease] = file.read()
+        else:
+            d_desc_map[disease] = "Deskripsi tidak tersedia."
 
-        # OBAT
-        with open(BASE_DIR / "Obat_penyakit" / f"{disease}.txt", "r", encoding="utf-8") as file:
-            d_treatment_map[disease] = file.read()
+        # BACA OBAT
+        if treatment_path.exists():
+            with open(treatment_path, "r", encoding="utf-8") as file:
+                d_treatment_map[disease] = file.read()
+        else:
+            d_treatment_map[disease] = "Informasi pengobatan tidak tersedia."
 
 # =========================================
 # STREAMLIT UI
