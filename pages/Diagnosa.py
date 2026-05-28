@@ -34,29 +34,49 @@ def preprocess():
     d_desc_map = {}
     d_treatment_map = {}
 
+    # Root folder proyek Anda (/mount/src/sistem_deteksi_penyakit_kulit)
     BASE_DIR = Path(__file__).resolve().parent.parent
 
-    # 1. Pastikan file utama ada
+    # 1. Cari folder data secara dinamis (mengatasi masalah huruf besar/kecil)
+    def get_exact_folder_name(base_path, target_name):
+        """Mencari folder tanpa memedulikan huruf besar/kecil"""
+        if base_path.exists():
+            for folder in base_path.iterdir():
+                if folder.is_dir() and folder.name.lower() == target_name.lower():
+                    return folder
+        return base_path / target_name # fallback jika tidak ditemukan
+
+    folder_gejala = get_exact_folder_name(BASE_DIR, "Gejala_penyakit")
+    folder_deskripsi = get_exact_folder_name(BASE_DIR, "Deskripsi_penyakit")
+    folder_obat = get_exact_folder_name(BASE_DIR, "Obat_penyakit")
+
+    # 2. Cek file penyakit.txt
     penyakit_file = BASE_DIR / "penyakit.txt"
     if not penyakit_file.exists():
-        st.error(f"File tidak ditemukan: {penyakit_file}")
+        st.error(f"❌ File tidak ditemukan: {penyakit_file}")
         return
 
     with open(penyakit_file, "r", encoding="utf-8") as f:
         diseases_list = [line.strip() for line in f.read().splitlines() if line.strip()]
 
+    # 3. Looping untuk membaca semua file penyakit
     for disease in diseases_list:
-        # Menghapus spasi liar di nama penyakit
         disease = disease.strip()
 
-        # 2. Jalur Folder (Pastikan huruf besar/kecil di folder GitHub Anda SAMA PERSIS!)
-        gejala_path = BASE_DIR / "Gejala_penyakit" / f"{disease}.txt"
-        desc_path = BASE_DIR / "Deskripsi_penyakit" / f"{disease}.txt"
-        treatment_path = BASE_DIR / "Obat_penyakit" / f"{disease}.txt"
+        # Cari file penyakit secara case-insensitive di dalam folder gejala
+        gejala_path = None
+        if folder_gejala.exists():
+            for file_item in folder_gejala.glob("*.txt"):
+                if file_item.stem.lower() == disease.lower():
+                    gejala_path = file_item
+                    break
 
-        # Cek apakah file-file tersebut benar-benar ada sebelum dibuka
+        # Jika file tidak ditemukan lewat pencarian dinamis, gunakan path standar
+        if not gejala_path:
+            gejala_path = folder_gejala / f"{disease}.txt"
+
         if not gejala_path.exists():
-            st.error(f"File gejala tidak ditemukan untuk penyakit: {disease} di jalur {gejala_path}")
+            st.error(f"❌ File gejala tidak ditemukan untuk penyakit: {disease} di jalur {gejala_path}")
             continue
 
         # BACA GEJALA
@@ -64,24 +84,43 @@ def preprocess():
             s_list = [line.strip() for line in file.read().splitlines()]
         
         diseases_symptoms.append(s_list)
-        
-        # CATATAN: Pastikan isi file txt gejala Anda adalah susunan "ya"/"tidak" 
-        # sebanyak 37 baris yang urutannya sama dengan list 'symptoms' di Streamlit.
         symptom_map[tuple(s_list)] = disease
 
         # BACA DESKRIPSI
+        desc_path = folder_deskripsi / f"{gejala_path.stem}.txt"
         if desc_path.exists():
             with open(desc_path, "r", encoding="utf-8") as file:
                 d_desc_map[disease] = file.read()
         else:
-            d_desc_map[disease] = "Deskripsi tidak tersedia."
+            # Coba cari secara case-insensitive jika tidak langsung ketemu
+            found_desc = False
+            if folder_deskripsi.exists():
+                for f_item in folder_deskripsi.glob("*.txt"):
+                    if f_item.stem.lower() == disease.lower():
+                        with open(f_item, "r", encoding="utf-8") as file:
+                            d_desc_map[disease] = file.read()
+                        found_desc = True
+                        break
+            if not found_desc:
+                d_desc_map[disease] = "Deskripsi tidak tersedia."
 
         # BACA OBAT
+        treatment_path = folder_obat / f"{gejala_path.stem}.txt"
         if treatment_path.exists():
             with open(treatment_path, "r", encoding="utf-8") as file:
                 d_treatment_map[disease] = file.read()
         else:
-            d_treatment_map[disease] = "Informasi pengobatan tidak tersedia."
+            # Coba cari secara case-insensitive jika tidak langsung ketemu
+            found_treat = False
+            if folder_obat.exists():
+                for f_item in folder_obat.glob("*.txt"):
+                    if f_item.stem.lower() == disease.lower():
+                        with open(f_item, "r", encoding="utf-8") as file:
+                            d_treatment_map[disease] = file.read()
+                        found_treat = True
+                        break
+            if not found_treat:
+                d_treatment_map[disease] = "Informasi pengobatan tidak tersedia."
 
 # =========================================
 # STREAMLIT UI
